@@ -510,6 +510,7 @@ def generate_custom_dummy_programs(channel_id, channel_name, now, num_days, cust
     timezone_value = custom_properties.get('timezone', 'UTC')
     output_timezone_value = custom_properties.get('output_timezone', '')  # Optional: display times in different timezone
     program_duration = custom_properties.get('program_duration', 180)  # Minutes
+    single_program_only = custom_properties.get('single_program_only', False)
     title_template = custom_properties.get('title_template', '')
     subtitle_template = custom_properties.get('subtitle_template', '')
     description_template = custom_properties.get('description_template', '')
@@ -934,6 +935,47 @@ def generate_custom_dummy_programs(channel_id, channel_name, now, num_days, cust
             is_event_day = (day == 0)
 
             if is_event_day and not event_happened:
+                # If single_program_only is enabled, generate ONLY the main event and skip all filler programs
+                if single_program_only:
+                    # Build custom_properties for main event (includes category and live)
+                    main_event_custom_properties = {}
+
+                    # Add categories if provided
+                    if categories:
+                        main_event_custom_properties['categories'] = categories
+
+                    # Add date if requested (YYYY-MM-DD format from start time in event timezone)
+                    if include_date:
+                        local_time = event_start_utc.astimezone(source_tz)
+                        date_str = local_time.strftime('%Y-%m-%d')
+                        main_event_custom_properties['date'] = date_str
+
+                    # Add live flag if requested
+                    if include_live:
+                        main_event_custom_properties['live'] = True
+
+                    # Add new flag if requested
+                    if include_new:
+                        main_event_custom_properties['new'] = True
+
+                    # Add program poster URL if provided
+                    if program_poster_url:
+                        main_event_custom_properties['icon'] = program_poster_url
+
+                    programs.append({
+                        "channel_id": channel_id,
+                        "start_time": event_start_utc,
+                        "end_time": event_end_utc,
+                        "title": main_event_title,
+                        "sub_title": main_event_subtitle,
+                        "description": main_event_description,
+                        "custom_properties": main_event_custom_properties,
+                        "channel_logo_url": channel_logo_url,  # Pass channel logo for EPG generation
+                    })
+
+                    logger.info(f"Single program mode enabled - generating ONLY main event for {channel_name}")
+                    return programs
+
                 # This is THE day the event happens
                 # Fill programs BEFORE the event
                 current_time = day_start
@@ -1127,6 +1169,11 @@ def generate_custom_dummy_programs(channel_id, channel_name, now, num_days, cust
                     current_time += timedelta(minutes=program_duration)
         else:
             # No extracted time - fill entire day with regular intervals
+            # If single_program_only is enabled but no time was extracted,
+            # do not generate fallback tiled programs
+            if single_program_only:
+                logger.info(f"Single program mode enabled but no event time parsed for {channel_name}")
+                return []
             # day_start and day_end are already in UTC, so no conversion needed
             programs_per_day = max(1, int(24 / (program_duration / 60)))
 

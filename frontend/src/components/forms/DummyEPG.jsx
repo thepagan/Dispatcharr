@@ -116,6 +116,7 @@ const DummyEPGForm = ({ epg, isOpen, onClose }) => {
         include_date: true,
         include_live: false,
         include_new: false,
+        single_program_only: false,
       },
     },
     validate: {
@@ -623,6 +624,7 @@ const DummyEPGForm = ({ epg, isOpen, onClose }) => {
           include_date: custom.include_date ?? true,
           include_live: custom.include_live ?? false,
           include_new: custom.include_new ?? false,
+          single_program_only: custom.single_program_only ?? false,
         },
       });
 
@@ -743,6 +745,7 @@ const DummyEPGForm = ({ epg, isOpen, onClose }) => {
         include_date: custom.include_date ?? true,
         include_live: custom.include_live ?? false,
         include_new: custom.include_new ?? false,
+        single_program_only: custom.single_program_only ?? false,
       },
     });
 
@@ -1331,6 +1334,17 @@ const DummyEPGForm = ({ epg, isOpen, onClose }) => {
                       />
                     }
                     {...form.getInputProps('custom_properties.include_new', {
+                      type: 'checkbox',
+                    })}
+                  />
+                  <Checkbox
+                    label={
+                      <LabelWithInfo
+                        label="Single Event Mode"
+                        info="Generate ONLY the main event program. Disables upcoming/ended filler blocks and prevents full-day tiling."
+                      />
+                    }
+                    {...form.getInputProps('custom_properties.single_program_only', {
                       type: 'checkbox',
                     })}
                   />
